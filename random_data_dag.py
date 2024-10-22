@@ -4,8 +4,7 @@ import psycopg2
 from datetime import datetime, timedelta
 
 from airflow import DAG
-from airflow.operators import PythonOperator
-# from airflow.operators.python_operator import PythonOperator
+from airflow.operators.python_operator import PythonOperator
 
 
 def extract_data():
@@ -20,7 +19,7 @@ def extract_data():
         dbname="random_data",
         user="postgres",
         password="secret",
-        host="localhost",
+        host="172.25.16.1",
         port="5432")
     cur = conn.cursor()
 
@@ -30,14 +29,18 @@ def extract_data():
             "INSERT INTO random_data (id, uid, strain,"
             "cannabinoid_abbreviation,"
             "cannabinoid, terpene, medical_use, health_benefit, category,"
-            "type, buzzword, brand) VALUES (%s, %s, %s)", (i['id'], i['uid'],
-                                                           i['strain'],
-                                                           i['cannabinoid_abbreviation'],
-                                                           i['cannabinoid'],
-                                                           i['terpene'],
-                                                           i['medical_use'],
-                                                           i['health_benefit'],
-                                                           i['category']))
+            "type, buzzword, brand) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (i['id'], i['uid'],
+            i['strain'],
+            i['cannabinoid_abbreviation'],
+            i['cannabinoid'],
+            i['terpene'],
+            i['medical_use'],
+            i['health_benefit'],
+            i['category'],
+            i['type'],
+            i['buzzword'],
+            i['brand'],))
 
     # сохраняем изменения и закрываем бд
     conn.commit()
@@ -57,7 +60,7 @@ def check_data():
     conn = psycopg2.connect("dbname=random_data user=postgres password=secret")
     cur = conn.cursor()
 
-    cur.execute("SELECT COUNT(*)) FROM random_data")
+    cur.execute("SELECT COUNT(*) FROM random_data")
     bd_count = cur.fetchone()[0]
 
     conn.close()
@@ -70,7 +73,7 @@ def check_data():
               "соответствует источнику!")
 
 
-dag = DAG('random_data',
+dag = DAG("random_data",
           schedule_interval=timedelta(hours=12),
           start_date=datetime(2024, 10, 20, 0),
           )
@@ -84,7 +87,7 @@ extract_data_task = PythonOperator(
 
 check_data_task = PythonOperator(
     task_id='check_data',
-    python_callable=extract_data,
+    python_callable=check_data,
     dag=dag,
 )
 
